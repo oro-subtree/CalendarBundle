@@ -1,7 +1,6 @@
 {% extends 'OroUIBundle:actions:view.html.twig' %}
 
-{% set format = oro_config_value('oro_locale.name_format') %}
-{% set name = entity.owner.fullname(format)|default('N/A') %}
+{% set name = entity.owner|oro_format_name|default('N/A') %}
 {% oro_title_set({params : {"%username%": name, "%calendarname%": entity.name|default(name) }}) %}
 
 {% block head_script %}

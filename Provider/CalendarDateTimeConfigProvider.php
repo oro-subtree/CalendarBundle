@@ -2,18 +2,25 @@
 
 namespace Oro\Bundle\CalendarBundle\Provider;
 
-use Oro\Bundle\ConfigBundle\Config\ConfigManager;
+use Oro\Bundle\LocaleBundle\Formatter\DateTimeFormatter;
+use Oro\Bundle\LocaleBundle\Model\LocaleSettings;
 
 class CalendarDateTimeConfigProvider
 {
     /**
-     * @var ConfigManager
+     * @var DateTimeFormatter
      */
-    protected $cm;
+    protected $dateTimeFormatter;
 
-    public function __construct(ConfigManager $cm)
+    /**
+     * @var LocaleSettings
+     */
+    protected $localeSettings;
+
+    public function __construct(LocaleSettings $localeSettings, DateTimeFormatter $dateTimeFormatter)
     {
-        $this->cm = $cm;
+        $this->dateTimeFormatter = $dateTimeFormatter;
+        $this->localeSettings = $localeSettings;
     }
 
     /**
@@ -22,14 +29,14 @@ class CalendarDateTimeConfigProvider
      */
     public function getDateRange(\DateTime $date = null)
     {
-        $timezone    = $this->cm->get('oro_locale.timezone');
+        $timezone    = $this->localeSettings->getTimeZone();
         $timezoneObj = new \DateTimeZone($timezone);
         if ($date === null) {
             $date = new \DateTime('now', $timezoneObj);
         } else {
             $date->setTimezone($timezoneObj);
         }
-        $firstDay  = $this->getFirstDayOfWeek();
+        $firstDay  = $this->localeSettings->getCalendar()->getFirstDayOfWeek() - 1;
         $startDate = clone $date;
         $startDate->setDate($date->format('Y'), $date->format('n'), 1);
         $startDate->setTime(0, 0, 0);
@@ -49,44 +56,14 @@ class CalendarDateTimeConfigProvider
      */
     public function getCalendarOptions(\DateTime $date = null)
     {
-        $dateFormat            = $this->cm->get('oro_locale.date_format');
-        $timeFormat            = $this->cm->get('oro_locale.time_format');
-        $timezone              = $this->cm->get('oro_locale.timezone');
+        $calendar = $this->localeSettings->getCalendar();
+        $timezone = $this->localeSettings->getTimeZone();
+
+        $dateFormat            = $this->dateTimeFormatter->getPattern('medium', 'none');
+        $timeFormat            = $this->dateTimeFormatter->getPattern('none', 'short');
         $dateFormatWithoutYear = preg_replace('/[ .\/-]?y[ .\/-]?/i', '', $dateFormat);
 
-        // @todo: need to be refactored using Intl library
-        $monthNames      = array(
-            'January',
-            'February',
-            'March',
-            'April',
-            'May',
-            'June',
-            'July',
-            'August',
-            'September',
-            'October',
-            'November',
-            'December'
-        );
-        $monthNamesShort = array(
-            'Jan',
-            'Feb',
-            'Mar',
-            'Apr',
-            'May',
-            'Jun',
-            'Jul',
-            'Aug',
-            'Sep',
-            'Oct',
-            'Nov',
-            'Dec'
-        );
-        $dayNames        = array('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday');
-        $dayNamesShort   = array('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat');
-
-        $timezoneObj     = new \DateTimeZone($timezone);
+        $timezoneObj = new \DateTimeZone($timezone);
         if ($date === null) {
             $date = new \DateTime('now', $timezoneObj);
         } else {
@@ -105,11 +82,11 @@ class CalendarDateTimeConfigProvider
         return array(
             'date'            => $date->format('Y-m-d'),
             'timezoneOffset'  => $timezoneOffset,
-            'firstDay'        => $this->getFirstDayOfWeek(),
-            'monthNames'      => $monthNames,
-            'monthNamesShort' => $monthNamesShort,
-            'dayNames'        => $dayNames,
-            'dayNamesShort'   => $dayNamesShort,
+            'firstDay'        => $calendar->getFirstDayOfWeek() - 1,
+            'monthNames'      => array_values($calendar->getMonthNames('wide')),
+            'monthNamesShort' => array_values($calendar->getMonthNames('abbreviated')),
+            'dayNames'        => array_values($calendar->getDayOfWeekNames('wide')),
+            'dayNamesShort'   => array_values($calendar->getDayOfWeekNames('abbreviated')),
             'titleFormat'     => array(
                 'month' => 'MMMM yyyy',
                 'week'  => $fcWeekFormat,
@@ -126,19 +103,6 @@ class CalendarDateTimeConfigProvider
             ),
             'axisFormat'      => $fcTimeFormat,
         );
-    }
-
-    /**
-     * Gets the first day of the week
-     *
-     * @return int
-     */
-    protected function getFirstDayOfWeek()
-    {
-        $locale = $this->cm->get('oro_locale.locale');
-
-        // @todo: need to be refactored using Intl library
-        return 0;
     }
 
     /**

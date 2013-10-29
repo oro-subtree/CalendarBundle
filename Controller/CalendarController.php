@@ -71,8 +71,8 @@ class CalendarController extends Controller
                             'required' => true,
                             'configs'  => array(
                                 'placeholder'             => 'oro.calendar.form.choose_user_to_add_calendar',
-                                'result_template_twig'    => 'OroCalendarBundle:Js:userResult.html.twig',
-                                'selection_template_twig' => 'OroCalendarBundle:Js:userSelection.html.twig',
+                                'result_template_twig'    => 'OroUserBundle:User:Autocomplete/result.html.twig',
+                                'selection_template_twig' => 'OroUserBundle:User:Autocomplete/selection.html.twig',
                                 /* @todo: Must be removed. I have to do this because oro_user_select sets 400px */
                                 'width'                   => 'off'
                             )
@@ -86,8 +86,11 @@ class CalendarController extends Controller
                 'removable'       => $securityFacade->isGranted('oro_calendar_event_delete'),
             )
         );
-
-        $dateTimeProvider = new CalendarDateTimeConfigProvider($this->get('oro_config.global'));
+        
+        $dateTimeProvider = new CalendarDateTimeConfigProvider(
+            $this->get('oro_locale.settings'),
+            $this->get('oro_locale.formatter.date_time')
+        );
         $currentDate = new \DateTime('now', new \DateTimeZone('UTC'));
         $result = array_merge($result, $dateTimeProvider->getDateRange($currentDate));
         $result['calendar'] = array_merge($result['calendar'], $dateTimeProvider->getCalendarOptions($currentDate));

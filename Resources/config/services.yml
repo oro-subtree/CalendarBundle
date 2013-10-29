@@ -46,6 +46,6 @@ services:
     oro_calendar.twig.dateformat:
         class: %oro_calendar.twig.dateformat.class%
         arguments:
-            - @oro_locale.twig.dateformat
+            - @oro_locale.formatter.date_time
         tags:
             - { name: twig.extension }

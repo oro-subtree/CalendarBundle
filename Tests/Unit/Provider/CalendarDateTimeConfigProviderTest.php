@@ -7,18 +7,41 @@ use Oro\Bundle\CalendarBundle\Tests\Unit\ReflectionUtil;
 
 class CalendarDateTimeConfigProviderTest extends \PHPUnit_Framework_TestCase
 {
-    /** @var \PHPUnit_Framework_MockObject_MockObject */
-    protected $cm;
+    /**
+     * @var \PHPUnit_Framework_MockObject_MockObject
+     */
+    protected $localeSettings;
 
-    /** @var CalendarDateTimeConfigProvider */
+    /**
+     * @var \PHPUnit_Framework_MockObject_MockObject
+     */
+    protected $calendar;
+
+    /**
+     * @var \PHPUnit_Framework_MockObject_MockObject
+     */
+    protected $dateTimeFormatter;
+
+    /**
+     * @var CalendarDateTimeConfigProvider
+     */
     protected $provider;
 
     protected function setUp()
     {
-        $this->cm       = $this->getMockBuilder('Oro\Bundle\ConfigBundle\Config\ConfigManager')
+        $this->localeSettings = $this->getMockBuilder('Oro\Bundle\LocaleBundle\Model\LocaleSettings')
             ->disableOriginalConstructor()
             ->getMock();
-        $this->provider = new CalendarDateTimeConfigProvider($this->cm);
+
+        $this->calendar = $this->getMockBuilder('Oro\Bundle\LocaleBundle\Model\Calendar')
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->dateTimeFormatter = $this->getMockBuilder('Oro\Bundle\LocaleBundle\Formatter\DateTimeFormatter')
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->provider = new CalendarDateTimeConfigProvider($this->localeSettings, $this->dateTimeFormatter);
     }
 
     /**
@@ -26,14 +49,16 @@ class CalendarDateTimeConfigProviderTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetDateRange($current, $start, $end)
     {
-        $this->cm->expects($this->at(0))
-            ->method('get')
-            ->with('oro_locale.timezone')
+        $this->localeSettings->expects($this->once())
+            ->method('getTimeZone')
             ->will($this->returnValue('America/New_York'));
-        $this->cm->expects($this->at(1))
-            ->method('get')
-            ->with('oro_locale.locale')
-            ->will($this->returnValue('en_US'));
+
+        $this->localeSettings->expects($this->once())
+            ->method('getCalendar')
+            ->will($this->returnValue($this->calendar));
+
+        $this->calendar->expects($this->once())->method('getFirstDayOfWeek')
+            ->will($this->returnValue(1));
 
         $date   = new \DateTime($current, new \DateTimeZone('UTC'));
         $result = $this->provider->getDateRange($date);
@@ -49,22 +74,59 @@ class CalendarDateTimeConfigProviderTest extends \PHPUnit_Framework_TestCase
 
     public function testGetCalendarOptions1()
     {
-        $this->cm->expects($this->at(0))
-            ->method('get')
-            ->with('oro_locale.date_format')
-            ->will($this->returnValue('d.m.Y'));
-        $this->cm->expects($this->at(1))
-            ->method('get')
-            ->with('oro_locale.time_format')
-            ->will($this->returnValue('H:i'));
-        $this->cm->expects($this->at(2))
-            ->method('get')
-            ->with('oro_locale.timezone')
+        $this->localeSettings->expects($this->once())
+            ->method('getTimeZone')
             ->will($this->returnValue('America/New_York'));
-        $this->cm->expects($this->at(3))
-            ->method('get')
-            ->with('oro_locale.locale')
-            ->will($this->returnValue('en_US'));
+
+        $this->localeSettings->expects($this->once())
+            ->method('getCalendar')
+            ->will($this->returnValue($this->calendar));
+
+        $this->calendar->expects($this->at(0))->method('getFirstDayOfWeek')
+            ->will($this->returnValue(1));
+
+        $this->calendar->expects($this->at(1))->method('getMonthNames')
+            ->with('wide')
+            ->will(
+                $this->returnValue(
+                    array(
+                        1 => 'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                    )
+                )
+            );
+
+        $this->calendar->expects($this->at(2))->method('getMonthNames')
+            ->with('abbreviated')
+            ->will(
+                $this->returnValue(
+                    array(1 => 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+                )
+            );
+
+        $this->calendar->expects($this->at(3))->method('getDayOfWeekNames')
+            ->with('wide')
+            ->will(
+                $this->returnValue(
+                    array(1 => 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday')
+                )
+            );
+
+        $this->calendar->expects($this->at(4))->method('getDayOfWeekNames')
+            ->with('abbreviated')
+            ->will(
+            $this->returnValue(
+                array(1 => 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat')
+            )
+        );
+
+        $this->dateTimeFormatter->expects($this->at(0))->method('getPattern')
+            ->with('medium', 'none')
+            ->will($this->returnValue('d.m.Y'));
+
+        $this->dateTimeFormatter->expects($this->at(1))->method('getPattern')
+            ->with('none', 'short')
+            ->will($this->returnValue('H:i'));
 
         $date   = new \DateTime('2014-01-20T10:30:15+00:00', new \DateTimeZone('UTC'));
         $result = $this->provider->getCalendarOptions($date);
@@ -127,22 +189,59 @@ class CalendarDateTimeConfigProviderTest extends \PHPUnit_Framework_TestCase
 
     public function testGetCalendarOptions2()
     {
-        $this->cm->expects($this->at(0))
-            ->method('get')
-            ->with('oro_locale.date_format')
-            ->will($this->returnValue('Y-m-d'));
-        $this->cm->expects($this->at(1))
-            ->method('get')
-            ->with('oro_locale.time_format')
-            ->will($this->returnValue('g:i a'));
-        $this->cm->expects($this->at(2))
-            ->method('get')
-            ->with('oro_locale.timezone')
+        $this->localeSettings->expects($this->once())
+            ->method('getTimeZone')
             ->will($this->returnValue('America/New_York'));
-        $this->cm->expects($this->at(3))
-            ->method('get')
-            ->with('oro_locale.locale')
-            ->will($this->returnValue('en_US'));
+
+        $this->localeSettings->expects($this->once())
+            ->method('getCalendar')
+            ->will($this->returnValue($this->calendar));
+
+        $this->calendar->expects($this->at(0))->method('getFirstDayOfWeek')
+            ->will($this->returnValue(1));
+
+        $this->calendar->expects($this->at(1))->method('getMonthNames')
+            ->with('wide')
+            ->will(
+            $this->returnValue(
+                array(
+                    1 => 'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                )
+            )
+        );
+
+        $this->calendar->expects($this->at(2))->method('getMonthNames')
+            ->with('abbreviated')
+            ->will(
+            $this->returnValue(
+                array(1 => 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+            )
+        );
+
+        $this->calendar->expects($this->at(3))->method('getDayOfWeekNames')
+            ->with('wide')
+            ->will(
+            $this->returnValue(
+                array(1 => 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday')
+            )
+        );
+
+        $this->calendar->expects($this->at(4))->method('getDayOfWeekNames')
+            ->with('abbreviated')
+            ->will(
+            $this->returnValue(
+                array(1 => 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat')
+            )
+        );
+
+        $this->dateTimeFormatter->expects($this->at(0))->method('getPattern')
+            ->with('medium', 'none')
+            ->will($this->returnValue('Y-m-d'));
+
+        $this->dateTimeFormatter->expects($this->at(1))->method('getPattern')
+            ->with('none', 'short')
+            ->will($this->returnValue('g:i a'));
 
         $date   = new \DateTime('2014-01-20T10:30:15+00:00', new \DateTimeZone('UTC'));
         $result = $this->provider->getCalendarOptions($date);
@@ -201,21 +300,6 @@ class CalendarDateTimeConfigProviderTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('h:mm tt', $result['timeFormat']['']);
         $this->assertEquals('h:mm tt{ - h:mm tt}', $result['timeFormat']['agenda']);
         $this->assertEquals('h:mm tt', $result['axisFormat']);
-    }
-
-    public function testGetFirstDayOfWeek()
-    {
-        $this->cm->expects($this->once())
-            ->method('get')
-            ->with('oro_locale.locale')
-            ->will($this->returnValue('en_US'));
-
-        $result = ReflectionUtil::callProtectedMethod(
-            $this->provider,
-            'getFirstDayOfWeek',
-            array()
-        );
-        $this->assertEquals(0, $result);
     }
 
     /**
