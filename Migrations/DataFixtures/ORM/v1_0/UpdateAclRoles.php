@@ -1,6 +1,6 @@
 <?php
 
-namespace Oro\Bundle\CalendarBundle\DataFixtures\Migrations\ORM\v1_0;
+namespace Oro\Bundle\CalendarBundle\Migrations\DataFixtures\ORM\v1_0;
 
 use Doctrine\Common\DataFixtures\AbstractFixture;
 use Doctrine\Common\Persistence\ObjectManager;
@@ -34,7 +34,7 @@ class UpdateAclRoles extends AbstractFixture implements DependentFixtureInterfac
      */
     public function getDependencies()
     {
-        return ['Oro\Bundle\SecurityBundle\DataFixtures\Migrations\ORM\v1_0\LoadAclRoles'];
+        return ['Oro\Bundle\SecurityBundle\Migrations\DataFixtures\ORM\v1_0\LoadAclRoles'];
     }
 
     /**
