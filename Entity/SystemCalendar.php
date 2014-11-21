@@ -5,30 +5,25 @@ namespace Oro\Bundle\CalendarBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 
-use BeSimple\SoapBundle\ServiceDefinition\Annotation as Soap;
-
 use Oro\Bundle\OrganizationBundle\Entity\Organization;
-use Oro\Bundle\UserBundle\Entity\User;
 use Oro\Bundle\EntityConfigBundle\Metadata\Annotation\Config;
 
 /**
- * @ORM\Entity(repositoryClass="Oro\Bundle\CalendarBundle\Entity\Repository\CalendarRepository")
- * @ORM\Table(name="oro_calendar")
+ * @ORM\Entity
+ * @ORM\Table(name="oro_system_calendar")
  * @Config(
  *      defaultValues={
  *          "entity"={
  *              "icon"="icon-calendar"
  *          },
  *          "ownership"={
- *              "owner_type"="USER",
- *              "owner_field_name"="owner",
- *              "owner_column_name"="user_owner_id",
- *              "organization_field_name"="organization",
- *              "organization_column_name"="organization_id"
+ *              "owner_type"="ORGANIZATION",
+ *              "owner_field_name"="organization",
+ *              "owner_column_name"="organization_id"
  *          },
  *          "security"={
  *              "type"="ACL",
- *              "permissions"="VIEW",
+ *              "permissions"="VIEW;CREATE;EDIT;DELETE",
  *              "group_name"=""
  *          },
  *          "note"={
@@ -43,36 +38,40 @@ use Oro\Bundle\EntityConfigBundle\Metadata\Annotation\Config;
  *      }
  * )
  */
-class Calendar
+class SystemCalendar
 {
     /**
      * @ORM\Id
      * @ORM\Column(type="integer")
      * @ORM\GeneratedValue(strategy="AUTO")
-     * @Soap\ComplexType("int", nillable=true)
      */
     protected $id;
 
     /**
-     * @var string|null
+     * @var string
      *
-     * @ORM\Column(type="string", length=255, nullable=true)
-     * @Soap\ComplexType("string", nillable=true)
+     * @ORM\Column(type="string", length=255)
      */
     protected $name;
 
     /**
-     * @var User
+     * @var string|null
      *
-     * @ORM\ManyToOne(targetEntity="Oro\Bundle\UserBundle\Entity\User")
-     * @ORM\JoinColumn(name="user_owner_id", referencedColumnName="id", onDelete="SET NULL")
+     * @ORM\Column(name="background_color", type="string", length=7, nullable=true)
      */
-    protected $owner;
+    protected $backgroundColor;
+
+    /**
+     * @var boolean
+     *
+     * @ORM\Column(name="is_public", type="boolean")
+     */
+    protected $public = false;
 
     /**
      * @var ArrayCollection|CalendarEvent[]
      *
-     * @ORM\OneToMany(targetEntity="CalendarEvent", mappedBy="calendar", cascade={"persist"})
+     * @ORM\OneToMany(targetEntity="CalendarEvent", mappedBy="systemCalendar", cascade={"persist"})
      */
     protected $events;
 
@@ -97,9 +96,7 @@ class Calendar
      */
     public function __toString()
     {
-        return empty($this->name)
-            ? ($this->owner ? (string)$this->owner : '[default]')
-            : $this->name;
+        return $this->name;
     }
 
     /**
@@ -113,10 +110,9 @@ class Calendar
     }
 
     /**
-     * Gets calendar name.
-     * Usually user's default calendar has no name and this method returns null.
+     * Gets the calendar name.
      *
-     * @return string|null
+     * @return string
      */
     public function getName()
     {
@@ -124,9 +120,9 @@ class Calendar
     }
 
     /**
-     * Sets calendar name.
+     * Sets the calendar name.
      *
-     * @param string|null $name
+     * @param string $name
      *
      * @return self
      */
@@ -138,31 +134,60 @@ class Calendar
     }
 
     /**
-     * Gets owning user for this calendar
+     * Gets a background color of this calendar.
+     * If this method returns null the background color should be calculated automatically on UI.
      *
-     * @return User
+     * @return string|null The color in hex format, e.g. #FF0000.
      */
-    public function getOwner()
+    public function getBackgroundColor()
     {
-        return $this->owner;
+        return $this->backgroundColor;
     }
 
     /**
-     * Sets owning user for this calendar
+     * Sets a background color of this calendar.
      *
-     * @param User $owningUser
+     * @param string|null $backgroundColor The color in hex format, e.g. #FF0000.
+     *                                     Set it to null to allow UI to calculate the background color automatically.
      *
      * @return self
      */
-    public function setOwner($owningUser)
+    public function setBackgroundColor($backgroundColor)
     {
-        $this->owner = $owningUser;
+        $this->backgroundColor = $backgroundColor;
 
         return $this;
     }
 
     /**
-     * Gets all events of this calendar.
+     * Gets a flag indicates that the calendar is available for all
+     * users regardless of which organization they belong to.
+     * Public calendars are available to all organizations.
+     * Private calendars are available only to users inside one organization.
+     *
+     * @return bool
+     */
+    public function isPublic()
+    {
+        return $this->public;
+    }
+
+    /**
+     * Sets a flag indicates whether the calendar is public or not.
+     *
+     * @param  bool $public
+     *
+     * @return self
+     */
+    public function setPublic($public)
+    {
+        $this->public = (bool)$public;
+
+        return $this;
+    }
+
+    /**
+     * Gets all events of the calendar.
      *
      * @return CalendarEvent[]
      */
@@ -172,7 +197,7 @@ class Calendar
     }
 
     /**
-     * Adds an event to this calendar.
+     * Adds an event to the calendar.
      *
      * @param  CalendarEvent $event
      *
@@ -182,7 +207,7 @@ class Calendar
     {
         $this->events[] = $event;
 
-        $event->setCalendar($this);
+        $event->setSystemCalendar($this);
 
         return $this;
     }
